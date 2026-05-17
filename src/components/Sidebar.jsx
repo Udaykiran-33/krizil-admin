@@ -72,7 +72,7 @@ const NAV_SECTIONS = [
   },
 ];
 
-export default function Sidebar({ activeGroup, onGroupChange, groups, token }) {
+export default function Sidebar({ activeGroup, onGroupChange, groups, token, onLogout }) {
   const getCounts = (id) => {
     const g = groups.find((g) => g.id === id);
     return g ? g.operations.length : 0;
@@ -112,12 +112,45 @@ export default function Sidebar({ activeGroup, onGroupChange, groups, token }) {
       <div className="sidebar-footer">
         <div className="status-row">
           {token ? <CheckCircle2 size={10} color="var(--green)" /> : <XCircle size={10} color="var(--red)" />}
-          {token ? "Token set" : "No token"}
+          {token ? "Authenticated" : "No active session"}
         </div>
         <div className="status-row">
           <CheckCircle2 size={10} color="var(--green)" />
           API connected
         </div>
+        {token && onLogout && (
+          <button
+            onClick={onLogout}
+            style={{
+              width: "100%",
+              marginTop: "0.75rem",
+              padding: "0.4rem 0.5rem",
+              background: "rgba(248,113,113,0.1)",
+              border: "1px solid rgba(248,113,113,0.15)",
+              borderRadius: "6px",
+              color: "var(--red)",
+              fontSize: "0.72rem",
+              fontWeight: "600",
+              textAlign: "center",
+              cursor: "pointer",
+              transition: "all 150ms",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "4px"
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = "rgba(248,113,113,0.18)";
+              e.currentTarget.style.borderColor = "rgba(248,113,113,0.3)";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = "rgba(248,113,113,0.1)";
+              e.currentTarget.style.borderColor = "rgba(248,113,113,0.15)";
+            }}
+          >
+            Sign Out
+          </button>
+        )}
       </div>
     </aside>
   );
