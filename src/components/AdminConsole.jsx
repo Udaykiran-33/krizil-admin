@@ -54,7 +54,7 @@ export default function AdminConsole() {
         />
         <div className="page-transition">
           {isDashboard ? (
-            <Dashboard groups={apiGroups} onNavigate={handleGroupChange} />
+            <Dashboard groups={apiGroups} onNavigate={handleGroupChange} baseUrl={baseUrl} token={token} />
           ) : activeView === "console" ? (
             <OperationPanel group={currentGroup} baseUrl={baseUrl} token={token} onToast={addToast} />
           ) : (

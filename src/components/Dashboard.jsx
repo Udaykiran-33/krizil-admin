@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Users, Eye, Activity, DollarSign, Heart, MessageSquare,
   Share2, UserPlus, AlertTriangle, Clock, Film, FileText,
@@ -12,6 +12,7 @@ import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer, Tooltip,
   XAxis, YAxis, PieChart, Pie, Cell,
 } from "recharts";
+import { runApiOperation } from "@/lib/apiClient";
 
 /* ── Realistic mock data matching backend API design ── */
 const weeklyUserData = [
@@ -83,18 +84,44 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-export default function Dashboard({ groups, onNavigate }) {
+export default function Dashboard({ groups, onNavigate, baseUrl, token }) {
+  const [realStats, setRealStats] = useState(null);
   const totalOps = groups.reduce((t, g) => t + g.operations.length, 0);
 
+  useEffect(() => {
+    async function fetchStats() {
+      if (!token) return;
+      try {
+        const result = await runApiOperation({
+          baseUrl,
+          token,
+          method: "GET",
+          path: "/admin/dashboard",
+          pathParams: {},
+          queryObj: {},
+          bodyObj: {}
+        });
+        if (result.ok && result.data?.data) {
+          setRealStats(result.data.data);
+        } else if (result.ok && result.data) {
+          setRealStats(result.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats", err);
+      }
+    }
+    fetchStats();
+  }, [baseUrl, token]);
+
   const platformStats = [
-    { Icon: Users, cls: "blue", label: "Total Users", value: "2.5M", trend: "+3.2K today", tc: "up" },
-    { Icon: Eye, cls: "green", label: "Daily Active", value: "450K", trend: "18% of total", tc: "up" },
-    { Icon: Activity, cls: "amber", label: "Avg Session", value: "28 min", trend: "+2.3 min", tc: "up" },
-    { Icon: DollarSign, cls: "green", label: "Revenue MTD", value: "$4.5M", trend: "+12.4%", tc: "up" },
+    { Icon: Users, cls: "blue", label: "Total Users", value: realStats?.total_users ?? "—", trend: "+3.2K today", tc: "up" },
+    { Icon: Eye, cls: "green", label: "Active Users", value: realStats?.active_users ?? "—", trend: "18% of total", tc: "up" },
+    { Icon: FileText, cls: "amber", label: "Total Posts", value: realStats?.total_posts ?? "—", trend: "+12% MTD", tc: "up" },
+    { Icon: Film, cls: "green", label: "Total Reels", value: realStats?.total_reels ?? "—", trend: "+4% MTD", tc: "up" },
   ];
 
   const moderationStats = [
-    { label: "Pending Reports", value: 342, Icon: AlertTriangle, color: "var(--red)" },
+    { label: "Pending Reports", value: realStats?.pending_reports ?? "—", Icon: AlertTriangle, color: "var(--red)" },
     { label: "Resolved Today", value: 128, Icon: ShieldCheck, color: "var(--green)" },
     { label: "Banned Today", value: 12, Icon: Users, color: "var(--amber)" },
   ];
