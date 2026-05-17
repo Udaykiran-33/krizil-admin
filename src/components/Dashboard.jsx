@@ -84,7 +84,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-export default function Dashboard({ groups, onNavigate, baseUrl, token }) {
+export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast }) {
   const [realStats, setRealStats] = useState(null);
   const totalOps = groups.reduce((t, g) => t + g.operations.length, 0);
 
@@ -101,17 +101,28 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token }) {
           queryObj: {},
           bodyObj: {}
         });
-        if (result.ok && result.data?.data) {
-          setRealStats(result.data.data);
-        } else if (result.ok && result.data) {
-          setRealStats(result.data);
+        if (result.ok) {
+          const stats = result.data?.data || result.data;
+          setRealStats(stats);
+          if (onToast) {
+            onToast({ ok: true, message: "Dashboard stats updated successfully!" });
+          }
+        } else {
+          console.error("Dashboard stats fetch non-ok response", result);
+          if (onToast) {
+            const errorMsg = result.data?.message || `Error ${result.status}`;
+            onToast({ ok: false, message: `Dashboard error: ${errorMsg}` });
+          }
         }
       } catch (err) {
         console.error("Failed to fetch dashboard stats", err);
+        if (onToast) {
+          onToast({ ok: false, message: `Connection error: ${err.message}` });
+        }
       }
     }
     fetchStats();
-  }, [baseUrl, token]);
+  }, [baseUrl, token, onToast]);
 
   const platformStats = [
     { Icon: Users, cls: "blue", label: "Total Users", value: realStats?.total_users ?? "—", trend: "+3.2K today", tc: "up" },

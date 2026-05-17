@@ -110,7 +110,10 @@ export default function DataExplorer({ group, baseUrl, token, onToast }) {
     setData(null);
     setSearch("");
     setPage(0);
-  }, [group?.id]);
+    if (token && primaryGet) {
+      fetchData();
+    }
+  }, [group?.id, token, primaryGet, fetchData]);
 
   const columns = useMemo(() => {
     if (!data || data.length === 0) return [];
