@@ -26,7 +26,7 @@ export const apiGroups = [
     label: "Users",
     description: "Profile, settings, follow and block management",
     operations: [
-      { id: "admin-list-users", name: "List All Users", method: "GET", path: "/users/search", queryTemplate: { q: "a", limit: 20 }, summary: "Search/list users" },
+      { id: "admin-list-users", name: "List All Users", method: "GET", path: "/users/suggestions", summary: "Fetch suggested users list" },
       { id: "users-me", name: "My Profile", method: "GET", path: "/users/me" },
       { id: "users-update-me", name: "Update My Profile", method: "PUT", path: "/users/me", bodyTemplate: { full_name: "Admin User", bio: "Platform administrator" } },
       { id: "users-avatar", name: "Upload Avatar", method: "PUT", path: "/users/me/avatar", mode: "multipart", summary: "Requires multipart with avatar file" },
