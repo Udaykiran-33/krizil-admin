@@ -68,6 +68,7 @@ export async function runApiOperation({
   const options = {
     method,
     headers,
+    credentials: "same-origin",
   };
 
   if (!["GET", "DELETE"].includes(method) && bodyObj && Object.keys(bodyObj).length > 0) {
