@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Lock, Mail, Globe, Loader2, ShieldAlert, Zap } from "lucide-react";
+import { Lock, Mail, Globe, Loader2, ShieldAlert, Zap, Settings } from "lucide-react";
 import { runApiOperation } from "@/lib/apiClient";
 
 export default function AdminLogin({ onLoginSuccess, onToast }) {
   const [email, setEmail] = useState("admin@instayt.com");
   const [password, setPassword] = useState("adminyt123");
-  const [baseUrl, setBaseUrl] = useState("http://localhost:3000/api/v1");
+  const [baseUrl, setBaseUrl] = useState("http://Insta-app-backend-env.eba-7c2tbppk.us-east-1.elasticbeanstalk.com/api/v1"); // Production EB backend
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,9 +39,6 @@ export default function AdminLogin({ onLoginSuccess, onToast }) {
         const token = payload?.access_token;
         const user = payload?.user;
 
-        // Verify if it is an admin user
-        // Let's decode or inspect the token, but the backend handles access restriction.
-        // We will call the dashboard endpoint immediately to verify auth is working!
         if (token) {
           onLoginSuccess(token, baseUrl);
           if (onToast) {
@@ -50,7 +48,7 @@ export default function AdminLogin({ onLoginSuccess, onToast }) {
           setErrorMsg("Login succeeded, but no access token was returned by the server.");
         }
       } else {
-        const msg = result.data?.message || `Error ${result.status}: Connection Refused or Invalid Credentials`;
+        const msg = result.data?.message || `Error ${result.status}: Invalid password or unable to connect.`;
         setErrorMsg(msg);
         if (onToast) {
           onToast({ ok: false, message: `Login failed: ${msg}` });
@@ -58,7 +56,7 @@ export default function AdminLogin({ onLoginSuccess, onToast }) {
       }
     } catch (err) {
       console.error("Login component error:", err);
-      setErrorMsg(`Connection error: ${err.message}. Make sure your backend is running on the selected API Base URL.`);
+      setErrorMsg(`Connection refused on ${baseUrl}. Please verify your backend server is running.`);
       if (onToast) {
         onToast({ ok: false, message: "Connection refused. Is backend running?" });
       }
@@ -75,48 +73,52 @@ export default function AdminLogin({ onLoginSuccess, onToast }) {
             <Zap size={24} />
           </div>
           <h2>Super Admin Portal</h2>
-          <p>Sign in to moderate and monitor your Instayt platform</p>
+          <p>Enter your secret password to access the panel</p>
         </div>
 
         {errorMsg && (
-          <div className="login-error-card">
-            <ShieldAlert size={16} />
-            <span>{errorMsg}</span>
+          <div className="login-error-card" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <ShieldAlert size={18} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: "0.8rem" }}>{errorMsg}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label>
-              <span className="form-label-text">API Base URL</span>
-              <div className="input-with-icon">
-                <Globe size={14} className="input-icon" />
-                <input
-                  type="text"
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="http://localhost:3000/api/v1"
-                  required
-                />
+          {showAdvanced && (
+            <>
+              <div className="form-group">
+                <label>
+                  <span className="form-label-text">API Base URL</span>
+                  <div className="input-with-icon">
+                    <Globe size={14} className="input-icon" />
+                    <input
+                      type="text"
+                      value={baseUrl}
+                      onChange={(e) => setBaseUrl(e.target.value)}
+                      placeholder="https://Insta-app-backend-env.eba-7c2tbppk.us-east-1.elasticbeanstalk.com/api/v1"
+                      required
+                    />
+                  </div>
+                </label>
               </div>
-            </label>
-          </div>
 
-          <div className="form-group">
-            <label>
-              <span className="form-label-text">Email Address</span>
-              <div className="input-with-icon">
-                <Mail size={14} className="input-icon" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@instayt.com"
-                  required
-                />
+              <div className="form-group">
+                <label>
+                  <span className="form-label-text">Admin Email</span>
+                  <div className="input-with-icon">
+                    <Mail size={14} className="input-icon" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="admin@instayt.com"
+                      required
+                    />
+                  </div>
+                </label>
               </div>
-            </label>
-          </div>
+            </>
+          )}
 
           <div className="form-group">
             <label>
@@ -147,7 +149,15 @@ export default function AdminLogin({ onLoginSuccess, onToast }) {
         </form>
 
         <div className="login-footer">
-          <small>Security clearance required. All login attempts are recorded in system logs.</small>
+          <button 
+            type="button" 
+            className="advanced-toggle" 
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            title="Advanced Connection Settings"
+          >
+            <Settings size={12} />
+            <span>{showAdvanced ? "Hide Server Settings" : "Connection Settings"}</span>
+          </button>
         </div>
       </div>
 
@@ -164,7 +174,7 @@ export default function AdminLogin({ onLoginSuccess, onToast }) {
         }
         .login-container {
           width: 100%;
-          max-width: 420px;
+          max-width: 400px;
           padding: 2.25rem 2rem;
           border-radius: 16px;
           animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -251,13 +261,26 @@ export default function AdminLogin({ onLoginSuccess, onToast }) {
           margin-top: 0.4rem;
         }
         .login-footer {
-          margin-top: 1.75rem;
-          text-align: center;
-          color: #475569;
-          line-height: 1.4;
+          margin-top: 1.5rem;
+          display: flex;
+          justify-content: center;
         }
-        .login-footer small {
-          font-size: 0.65rem;
+        .advanced-toggle {
+          background: transparent;
+          border: none;
+          color: #475569;
+          font-size: 0.7rem;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 4px;
+          transition: all 150ms;
+        }
+        .advanced-toggle:hover {
+          color: #94a3b8;
+          background: rgba(255, 255, 255, 0.02);
         }
         @keyframes slideUp {
           from {

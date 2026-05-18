@@ -11,7 +11,7 @@ import ResultToast from "./ResultToast";
 import AdminLogin from "./AdminLogin";
 
 export default function AdminConsole() {
-  const [baseUrl, setBaseUrl] = useState("http://localhost:3000/api/v1");
+  const [baseUrl, setBaseUrl] = useState("http://Insta-app-backend-env.eba-7c2tbppk.us-east-1.elasticbeanstalk.com/api/v1");
   const [token, setToken] = useState("");
   const [activeGroup, setActiveGroup] = useState("dashboard");
   const [activeView, setActiveView] = useState("explorer"); // default sub-view for modules
@@ -24,7 +24,16 @@ export default function AdminConsole() {
       const savedToken = localStorage.getItem("instayt_admin_token");
       const savedBaseUrl = localStorage.getItem("instayt_admin_baseUrl");
       if (savedToken) setToken(savedToken);
-      if (savedBaseUrl) setBaseUrl(savedBaseUrl);
+      
+      const defaultUrl = "http://Insta-app-backend-env.eba-7c2tbppk.us-east-1.elasticbeanstalk.com/api/v1";
+      if (savedBaseUrl && savedBaseUrl.includes("Insta-app-backend-env")) {
+        const httpUrl = savedBaseUrl.replace(/^https:/i, "http:");
+        setBaseUrl(httpUrl);
+        localStorage.setItem("instayt_admin_baseUrl", httpUrl);
+      } else {
+        setBaseUrl(defaultUrl);
+        localStorage.setItem("instayt_admin_baseUrl", defaultUrl);
+      }
     }
     setMounted(true);
   }, []);

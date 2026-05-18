@@ -25,7 +25,19 @@ export async function runApiOperation({
   bodyObj,
 }) {
   const appliedPath = applyPathParams(path, pathParams || {});
-  const normalizedBase = baseUrl.replace(/\/$/, "");
+  let cleanBase = baseUrl.trim().replace(/\/+$/, "");
+  
+  // Self-heal: Force HTTP instead of HTTPS if it points to AWS Elastic Beanstalk
+  if (cleanBase.includes("elasticbeanstalk.com") && cleanBase.startsWith("https://")) {
+    cleanBase = cleanBase.replace(/^https:/i, "http:");
+  }
+
+  // Self-heal: Ensure /api/v1 is appended to the base URL path
+  if (!cleanBase.endsWith("/api/v1")) {
+    cleanBase = `${cleanBase}/api/v1`;
+  }
+
+  const normalizedBase = cleanBase;
   const requestUrl = new URL(`${normalizedBase}${appliedPath}`);
 
   if (queryObj && typeof queryObj === "object") {
@@ -51,7 +63,23 @@ export async function runApiOperation({
   }
 
   const startedAt = performance.now();
-  const response = await fetch(requestUrl.toString(), options);
+  let response;
+  try {
+    response = await fetch(requestUrl.toString(), options);
+  } catch (netErr) {
+    console.warn("Network request failed:", netErr);
+    return {
+      ok: false,
+      status: 0,
+      elapsedMs: Math.round(performance.now() - startedAt),
+      url: requestUrl.toString(),
+      data: {
+        message: `Failed to connect to AWS backend at ${baseUrl}. Please verify your server status or check your internet connection.`,
+        error: netErr.message,
+      },
+    };
+  }
+
   const elapsedMs = Math.round(performance.now() - startedAt);
 
   let data;

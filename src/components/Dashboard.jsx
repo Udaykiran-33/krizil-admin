@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
-  Users, Eye, Activity, DollarSign, Heart, MessageSquare,
-  Share2, UserPlus, AlertTriangle, Clock, Film, FileText,
+  Users, Eye, Film, FileText,
   Camera, ArrowUpRight, TrendingUp, ShieldCheck, Crown,
   Megaphone, BarChart3, ArrowRight, Server, Settings,
   KeyRound, Handshake, Bell, Mail, Music, Bookmark, MessageCircle,
+  Heart, MessageSquare, Share2, UserPlus, Clock, AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer, Tooltip,
@@ -14,7 +15,7 @@ import {
 } from "recharts";
 import { runApiOperation } from "@/lib/apiClient";
 
-/* ── Realistic mock data matching backend API design ── */
+/* ── Static chart data ── */
 const weeklyUserData = [
   { day: "Mon", users: 3100 }, { day: "Tue", users: 3400 },
   { day: "Wed", users: 2900 }, { day: "Thu", users: 3800 },
@@ -43,15 +44,6 @@ const dailyContentData = [
   { day: "Fri", posts: 15800, reels: 11400, stories: 8100 },
   { day: "Sat", posts: 18200, reels: 14600, stories: 9800 },
   { day: "Sun", posts: 16400, reels: 12800, stories: 7400 },
-];
-
-const recentActivity = [
-  { action: "User @priya_creator verified", time: "2 min ago", type: "success" },
-  { action: "Report #4821 resolved — content removed", time: "8 min ago", type: "warning" },
-  { action: "New ad campaign 'Summer Collection' approved", time: "15 min ago", type: "info" },
-  { action: "User @spam_bot_93 banned for policy violation", time: "22 min ago", type: "danger" },
-  { action: "Gold membership tier pricing updated", time: "35 min ago", type: "info" },
-  { action: "Server 'Photography Club' flagged for review", time: "1 hr ago", type: "warning" },
 ];
 
 const MODULE_ICON_MAP = {
@@ -86,49 +78,62 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast }) {
   const [realStats, setRealStats] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastSynced, setLastSynced] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
+  const intervalRef = useRef(null);
   const totalOps = groups.reduce((t, g) => t + g.operations.length, 0);
 
-  useEffect(() => {
-    async function fetchStats() {
-      if (!token) return;
-      try {
-        const result = await runApiOperation({
-          baseUrl,
-          token,
-          method: "GET",
-          path: "/admin/dashboard",
-          pathParams: {},
-          queryObj: {},
-          bodyObj: {}
-        });
-        if (result.ok) {
-          const stats = result.data?.data || result.data;
-          setRealStats(stats);
-          if (onToast) {
-            onToast({ ok: true, message: "Dashboard stats updated successfully!" });
-          }
-        } else {
-          console.error("Dashboard stats fetch non-ok response", result);
-          if (onToast) {
-            const errorMsg = result.data?.message || `Error ${result.status}`;
-            onToast({ ok: false, message: `Dashboard error: ${errorMsg}` });
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch dashboard stats", err);
-        if (onToast) {
-          onToast({ ok: false, message: `Connection error: ${err.message}` });
-        }
+  async function fetchStats(silent = false) {
+    if (!silent) setIsRefreshing(true);
+    setFetchError(null);
+    try {
+      const result = await runApiOperation({
+        baseUrl,
+        token,
+        method: "GET",
+        path: "/admin/dashboard",
+        pathParams: {},
+        queryObj: {},
+        bodyObj: {},
+      });
+      if (result.ok) {
+        const stats = result.data?.data || result.data;
+        setRealStats(stats);
+        setLastSynced(new Date());
+      } else {
+        setFetchError(`Server responded ${result.status}`);
+        console.error("Dashboard fetch error:", result.status, result.data);
       }
+    } catch (err) {
+      setFetchError("Network error — retrying…");
+      console.error("Dashboard fetch threw:", err);
+    } finally {
+      if (!silent) setIsRefreshing(false);
     }
-    fetchStats();
-  }, [baseUrl, token, onToast]);
+  }
+
+  // Start live polling on mount, clear on unmount
+  useEffect(() => {
+    if (!token || !baseUrl) return;
+
+    // Immediate first fetch
+    fetchStats(false);
+
+    // Poll every 3 seconds for live data
+    intervalRef.current = setInterval(() => fetchStats(true), 3000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, baseUrl]);
 
   const platformStats = [
-    { Icon: Users, cls: "blue", label: "Total Users", value: realStats?.total_users ?? "—", trend: "+3.2K today", tc: "up" },
-    { Icon: Eye, cls: "green", label: "Active Users", value: realStats?.active_users ?? "—", trend: "18% of total", tc: "up" },
-    { Icon: FileText, cls: "amber", label: "Total Posts", value: realStats?.total_posts ?? "—", trend: "+12% MTD", tc: "up" },
-    { Icon: Film, cls: "green", label: "Total Reels", value: realStats?.total_reels ?? "—", trend: "+4% MTD", tc: "up" },
+    { Icon: Users, cls: "blue", label: "Total Users", value: realStats?.total_users ?? "—", trend: "Live from DB", tc: "up" },
+    { Icon: Eye, cls: "green", label: "Active Users", value: realStats?.active_users ?? "—", trend: "Live from DB", tc: "up" },
+    { Icon: FileText, cls: "amber", label: "Total Posts", value: realStats?.total_posts ?? "—", trend: "Live from DB", tc: "up" },
+    { Icon: Film, cls: "green", label: "Total Reels", value: realStats?.total_reels ?? "—", trend: "Live from DB", tc: "up" },
   ];
 
   const moderationStats = [
@@ -136,6 +141,10 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast 
     { label: "Resolved Today", value: 128, Icon: ShieldCheck, color: "var(--green)" },
     { label: "Banned Today", value: 12, Icon: Users, color: "var(--amber)" },
   ];
+
+  const timeStr = lastSynced
+    ? lastSynced.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : "Syncing…";
 
   return (
     <div className="content">
@@ -146,7 +155,22 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast 
           <p>Here&apos;s what&apos;s happening across your platform today.</p>
         </div>
         <div className="dash-hero-meta">
-          <span className="hero-badge live"><span className="live-dot" /> Live</span>
+          <span className="hero-badge live" style={{ borderColor: "rgba(52,211,153,0.3)", color: "var(--green)" }}>
+            <span
+              className="live-dot"
+              style={{ background: "var(--green)", boxShadow: "0 0 8px var(--green)" }}
+            />
+            {fetchError ? `⚠ ${fetchError}` : `Live Auto-Sync · ${timeStr}`}
+          </span>
+          <button
+            className="btn btn-ghost"
+            style={{ fontSize: "0.75rem", padding: "0.3rem 0.7rem" }}
+            onClick={() => fetchStats(false)}
+            disabled={isRefreshing}
+          >
+            <RefreshCw size={12} className={isRefreshing ? "spin-icon" : ""} />
+            {isRefreshing ? " Refreshing…" : " Refresh"}
+          </button>
           <span className="hero-badge">{totalOps} API Routes</span>
           <span className="hero-badge">{groups.length} Modules</span>
         </div>
@@ -168,7 +192,6 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast 
 
       {/* ── Charts Row ── */}
       <div className="charts-row">
-        {/* User Growth Chart */}
         <div className="chart-card glass-card">
           <div className="chart-card-header">
             <div>
@@ -195,7 +218,6 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast 
           </div>
         </div>
 
-        {/* Revenue Chart */}
         <div className="chart-card glass-card">
           <div className="chart-card-header">
             <div>
@@ -219,7 +241,6 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast 
 
       {/* ── Content & Activity Row ── */}
       <div className="dual-panel-row">
-        {/* Content Creation Chart */}
         <div className="chart-card glass-card">
           <div className="chart-card-header">
             <div>
@@ -246,22 +267,32 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast 
           </div>
         </div>
 
-        {/* Activity Feed */}
+        {/* Live Stats from DB */}
         <div className="chart-card glass-card activity-panel">
           <div className="chart-card-header">
             <div>
-              <h3>Recent Activity</h3>
-              <p>Admin actions & platform events</p>
+              <h3>Live Platform Stats</h3>
+              <p>Direct from AWS MongoDB · auto-refreshes every 3s</p>
             </div>
           </div>
           <div className="activity-feed">
-            {recentActivity.map((item, i) => (
-              <div key={i} className={`activity-item ${item.type}`}>
-                <div className={`activity-dot ${item.type}`} />
-                <div className="activity-content">
-                  <span className="activity-text">{item.action}</span>
-                  <span className="activity-time">{item.time}</span>
+            {[
+              { label: "Total Users", value: realStats?.total_users, icon: Users, color: "#4f8ef7" },
+              { label: "Active Users", value: realStats?.active_users, icon: Eye, color: "#34d399" },
+              { label: "Total Posts", value: realStats?.total_posts, icon: FileText, color: "#fbbf24" },
+              { label: "Total Reels", value: realStats?.total_reels, icon: Film, color: "#f472b6" },
+              { label: "Pending Reports", value: realStats?.pending_reports, icon: AlertTriangle, color: "#f87171" },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="activity-item info" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div style={{ color, background: `${color}18`, borderRadius: "8px", padding: "6px", display: "flex" }}>
+                  <Icon size={16} />
                 </div>
+                <div className="activity-content" style={{ flex: 1 }}>
+                  <span className="activity-text">{label}</span>
+                </div>
+                <span style={{ fontWeight: 700, color, fontSize: "1.05rem" }}>
+                  {value ?? (isRefreshing ? "…" : "—")}
+                </span>
               </div>
             ))}
           </div>
@@ -270,7 +301,6 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast 
 
       {/* ── Engagement + Moderation Row ── */}
       <div className="dual-panel-row">
-        {/* Live Engagement */}
         <div className="glass-card" style={{ padding: "1rem" }}>
           <h3 style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.75rem" }}>Live Engagement</h3>
           <div className="engagement-compact-grid">
@@ -278,9 +308,9 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast 
               { Icon: Heart, label: "Likes Today", value: "2.8M", color: "#f87171" },
               { Icon: MessageSquare, label: "Comments", value: "320K", color: "#fbbf24" },
               { Icon: Share2, label: "Shares", value: "95K", color: "#4f8ef7" },
-              { Icon: UserPlus, label: "New Signups", value: "3,200", color: "#34d399" },
+              { Icon: UserPlus, label: "New Signups", value: realStats?.total_users ?? "—", color: "#34d399" },
               { Icon: Clock, label: "Content Today", value: "45K", color: "#a78bfa" },
-              { Icon: Film, label: "Reels Created", value: "14.6K", color: "#f472b6" },
+              { Icon: Film, label: "Reels Created", value: realStats?.total_reels ?? "—", color: "#f472b6" },
             ].map((s) => (
               <div key={s.label} className="eng-row">
                 <div className="eng-row-icon" style={{ color: s.color, background: `${s.color}15` }}><s.Icon size={16} /></div>
@@ -291,7 +321,6 @@ export default function Dashboard({ groups, onNavigate, baseUrl, token, onToast 
           </div>
         </div>
 
-        {/* Moderation Queue */}
         <div className="glass-card" style={{ padding: "1rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
             <h3 style={{ fontSize: "0.9rem", fontWeight: 600 }}>Moderation Queue</h3>

@@ -40,14 +40,10 @@ export default function TopBar({ activeView, onViewChange, baseUrl, onBaseUrlCha
       </header>
 
       {showConfig && (
-        <div className="config-panel">
+        <div className="config-panel" style={{ gridTemplateColumns: "1fr auto" }}>
           <label>
             API Base URL
-            <input value={baseUrl} onChange={(e) => onBaseUrlChange(e.target.value)} placeholder="http://localhost:3001/api/v1" />
-          </label>
-          <label>
-            Bearer Token
-            <input type="password" value={token} onChange={(e) => onTokenChange(e.target.value)} placeholder="Paste JWT here" />
+            <input value={baseUrl} onChange={(e) => onBaseUrlChange(e.target.value)} placeholder="http://Insta-app-backend-env.eba-7c2tbppk.us-east-1.elasticbeanstalk.com/api/v1" />
           </label>
           <button className="btn btn-ghost" onClick={() => setShowConfig(false)}>Done</button>
         </div>

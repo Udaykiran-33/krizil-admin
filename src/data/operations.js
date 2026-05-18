@@ -4,7 +4,7 @@ export const apiGroups = [
     label: "System",
     description: "Health and runtime checks",
     operations: [
-      { id: "health", name: "Health Check", method: "GET", path: "/health", summary: "Service health status" },
+      { id: "health", name: "Health Check", method: "GET", path: "/admin/dashboard", summary: "Admin dashboard stats — confirms service is healthy" },
     ],
   },
   {
@@ -18,7 +18,7 @@ export const apiGroups = [
       { id: "forgot-password", name: "Forgot Password", method: "POST", path: "/auth/forgot-password", bodyTemplate: { email: "admin@example.com" } },
       { id: "reset-password", name: "Reset Password", method: "POST", path: "/auth/reset-password", bodyTemplate: { token: "<reset-token>", newPassword: "StrongPassword123!" } },
       { id: "logout", name: "Logout", method: "POST", path: "/auth/logout" },
-      { id: "2fa-enable", name: "Enable 2FA (Placeholder Route)", method: "POST", path: "/auth/2fa/enable" },
+
     ],
   },
   {
@@ -26,7 +26,7 @@ export const apiGroups = [
     label: "Users",
     description: "Profile, settings, follow and block management",
     operations: [
-      { id: "admin-list-users", name: "List All Users", method: "GET", path: "/admin/entities/users", summary: "Admin: fetch all users" },
+      { id: "admin-list-users", name: "List All Users", method: "GET", path: "/users/search", queryTemplate: { q: "a", limit: 20 }, summary: "Search/list users" },
       { id: "users-me", name: "My Profile", method: "GET", path: "/users/me" },
       { id: "users-update-me", name: "Update My Profile", method: "PUT", path: "/users/me", bodyTemplate: { full_name: "Admin User", bio: "Platform administrator" } },
       { id: "users-avatar", name: "Upload Avatar", method: "PUT", path: "/users/me/avatar", mode: "multipart", summary: "Requires multipart with avatar file" },
@@ -48,7 +48,7 @@ export const apiGroups = [
     label: "Posts",
     description: "Feed, CRUD, likes, comments, save, share and pin",
     operations: [
-      { id: "admin-list-posts", name: "List All Posts", method: "GET", path: "/admin/entities/posts", summary: "Admin: fetch all posts" },
+      { id: "admin-list-posts", name: "List All Posts", method: "GET", path: "/posts/explore", queryTemplate: { page: 1, limit: 20 }, summary: "Browse all posts via explore feed" },
       { id: "posts-feed", name: "Post Feed", method: "GET", path: "/posts/feed", queryTemplate: { page: 1, limit: 10 } },
       { id: "posts-explore", name: "Explore Posts", method: "GET", path: "/posts/explore", queryTemplate: { page: 1, limit: 10 } },
       { id: "posts-create", name: "Create Post", method: "POST", path: "/posts", mode: "multipart", summary: "Requires multipart with media[] and caption" },
@@ -71,7 +71,7 @@ export const apiGroups = [
     label: "Comments",
     description: "Standalone comment edit, delete, replies and likes",
     operations: [
-      { id: "admin-list-comments", name: "List All Comments", method: "GET", path: "/admin/entities/comments", summary: "Admin: fetch all comments" },
+      { id: "admin-list-comments", name: "List All Comments", method: "GET", path: "/admin/reports", queryTemplate: { status: "open", limit: 20 }, summary: "View open reports (admin)" },
       { id: "comment-update", name: "Update Comment", method: "PUT", path: "/comments/:commentId", bodyTemplate: { content: "Edited by admin" } },
       { id: "comment-delete", name: "Delete Comment", method: "DELETE", path: "/comments/:commentId", summary: "Admin moderation: comment deletion" },
       { id: "comment-reply", name: "Reply to Comment", method: "POST", path: "/comments/:commentId/reply", bodyTemplate: { content: "Please follow community policy." } },
@@ -85,7 +85,7 @@ export const apiGroups = [
     label: "Reels",
     description: "Reel feed and engagement actions",
     operations: [
-      { id: "admin-list-reels", name: "List All Reels", method: "GET", path: "/admin/entities/reels", summary: "Admin: fetch all reels" },
+      { id: "admin-list-reels", name: "List All Reels", method: "GET", path: "/reels/trending", queryTemplate: { page: 1, limit: 20 }, summary: "Browse trending reels" },
       { id: "reels-feed", name: "Reels Feed", method: "GET", path: "/reels/feed", queryTemplate: { page: 1, limit: 10 } },
       { id: "reels-trending", name: "Trending Reels", method: "GET", path: "/reels/trending", queryTemplate: { page: 1, limit: 10 } },
       { id: "reels-for-you", name: "For You Reels", method: "GET", path: "/reels/for-you", queryTemplate: { page: 1, limit: 10 } },
@@ -106,7 +106,7 @@ export const apiGroups = [
     label: "Stories",
     description: "Stories, highlights and engagement",
     operations: [
-      { id: "admin-list-stories", name: "List All Stories", method: "GET", path: "/admin/entities/stories", summary: "Admin: fetch all stories" },
+      { id: "admin-list-stories", name: "List All Stories", method: "GET", path: "/stories/feed", summary: "Browse story feed" },
       { id: "stories-feed", name: "Story Feed", method: "GET", path: "/stories/feed" },
       { id: "stories-highlight-create", name: "Create Highlight", method: "POST", path: "/stories/highlights", bodyTemplate: { title: "Travel", story_ids: ["<story-id>"] } },
       { id: "stories-highlight-user", name: "Get User Highlights", method: "GET", path: "/stories/highlights/:userId" },
@@ -123,7 +123,7 @@ export const apiGroups = [
     label: "Chat",
     description: "Conversations, messages and read/font actions",
     operations: [
-      { id: "admin-list-chats", name: "List All Chats", method: "GET", path: "/admin/entities/chat", summary: "Admin: fetch all conversations" },
+      { id: "admin-list-chats", name: "List All Chats", method: "GET", path: "/chat/conversations", summary: "Fetch all conversations" },
       { id: "chat-list", name: "List Conversations", method: "GET", path: "/chat/conversations" },
       { id: "chat-create", name: "Create Conversation", method: "POST", path: "/chat/conversations", bodyTemplate: { participant_ids: ["<user-id-1>", "<user-id-2>"], is_group: false } },
       { id: "chat-get", name: "Get Conversation", method: "GET", path: "/chat/conversations/:convId" },
@@ -139,7 +139,7 @@ export const apiGroups = [
     label: "Notifications",
     description: "Notification center operations",
     operations: [
-      { id: "admin-list-notifs", name: "List All Notifications", method: "GET", path: "/admin/entities/notifications", summary: "Admin: fetch all notifications" },
+      { id: "admin-list-notifs", name: "List All Notifications", method: "GET", path: "/notifications", summary: "Fetch all notifications" },
       { id: "notif-list", name: "List Notifications", method: "GET", path: "/notifications", queryTemplate: { page: 1, limit: 25 } },
       { id: "notif-unread", name: "Unread Count", method: "GET", path: "/notifications/unread-count" },
       { id: "notif-read-all", name: "Mark All Read", method: "PUT", path: "/notifications/read-all" },
@@ -152,7 +152,7 @@ export const apiGroups = [
     label: "Servers",
     description: "Community servers, members, channels and channel messages",
     operations: [
-      { id: "admin-list-servers", name: "List All Servers", method: "GET", path: "/admin/entities/servers", summary: "Admin: fetch all servers" },
+      { id: "admin-list-servers", name: "List All Servers", method: "GET", path: "/servers/discover", queryTemplate: { page: 1, limit: 20 }, summary: "Browse discoverable servers" },
       { id: "servers-create", name: "Create Server", method: "POST", path: "/servers", bodyTemplate: { name: "Creators Hub", description: "Official community" } },
       { id: "servers-mine", name: "My Servers", method: "GET", path: "/servers/mine" },
       { id: "servers-discover", name: "Discover Servers", method: "GET", path: "/servers/discover", queryTemplate: { page: 1, limit: 20 } },
@@ -175,7 +175,7 @@ export const apiGroups = [
     label: "Collaborations",
     description: "Brand and creator collaboration workflows",
     operations: [
-      { id: "admin-list-collabs", name: "List All Collaborations", method: "GET", path: "/admin/entities/collaborations", summary: "Admin: fetch all collabs" },
+      { id: "admin-list-collabs", name: "List All Collaborations", method: "GET", path: "/collaborations/mine", summary: "List collaborations" },
       { id: "collab-create", name: "Create Collaboration", method: "POST", path: "/collaborations", bodyTemplate: { collaborator_id: "<user-id>", post_id: "<post-id>", revenue_split: 50 } },
       { id: "collab-mine", name: "My Collaborations", method: "GET", path: "/collaborations/mine" },
       { id: "collab-pending", name: "Pending Invites", method: "GET", path: "/collaborations/pending" },
@@ -187,7 +187,7 @@ export const apiGroups = [
     label: "Ads",
     description: "Campaign lifecycle and ad monetization",
     operations: [
-      { id: "admin-list-ads", name: "List All Campaigns", method: "GET", path: "/admin/entities/campaigns", summary: "Admin: fetch all campaigns" },
+      { id: "admin-list-ads", name: "List All Campaigns", method: "GET", path: "/ads/campaigns", summary: "List all ad campaigns" },
       { id: "ads-create-campaign", name: "Create Campaign", method: "POST", path: "/ads/campaigns", bodyTemplate: { name: "Summer Sale", budget: 10000, target_audience: ["fashion"] } },
       { id: "ads-my-campaigns", name: "My Campaigns", method: "GET", path: "/ads/campaigns" },
       { id: "ads-get-campaign", name: "Get Campaign", method: "GET", path: "/ads/campaigns/:campaignId" },
@@ -202,7 +202,7 @@ export const apiGroups = [
     label: "Membership",
     description: "Subscriptions and transaction history",
     operations: [
-      { id: "admin-list-membership", name: "List All Subscriptions", method: "GET", path: "/admin/entities/membership", summary: "Admin: fetch all transactions" },
+      { id: "admin-list-membership", name: "List All Subscriptions", method: "GET", path: "/memberships/tiers", summary: "Fetch membership tiers" },
       { id: "membership-tiers", name: "Membership Tiers", method: "GET", path: "/memberships/tiers" },
       { id: "membership-my-sub", name: "My Subscription", method: "GET", path: "/memberships/my-subscription" },
       { id: "membership-subscribe", name: "Subscribe", method: "POST", path: "/memberships/subscribe/:membershipId", bodyTemplate: { payment_method: "card" } },
@@ -224,7 +224,7 @@ export const apiGroups = [
     label: "Audio",
     description: "Audio upload and discovery",
     operations: [
-      { id: "admin-list-audio", name: "List All Audio", method: "GET", path: "/admin/entities/audio", summary: "Admin: fetch all audio tracks" },
+      { id: "admin-list-audio", name: "List All Audio", method: "GET", path: "/audio/trending", summary: "Fetch trending audio tracks" },
       { id: "audio-upload", name: "Upload Audio", method: "POST", path: "/audio", mode: "multipart", summary: "Requires multipart with audio file" },
       { id: "audio-trending", name: "Trending Audio", method: "GET", path: "/audio/trending" },
       { id: "audio-search", name: "Search Audio", method: "GET", path: "/audio/search", queryTemplate: { q: "lofi", page: 1, limit: 10 } },
@@ -237,7 +237,7 @@ export const apiGroups = [
     label: "Saved",
     description: "Saved posts and collection management",
     operations: [
-      { id: "admin-list-saved", name: "List All Saves", method: "GET", path: "/admin/entities/saved", summary: "Admin: fetch all saves" },
+      { id: "admin-list-saved", name: "List All Saves", method: "GET", path: "/saved", summary: "Fetch saved items" },
       { id: "saved-list", name: "My Saved", method: "GET", path: "/saved", queryTemplate: { page: 1, limit: 25 } },
       { id: "saved-collections", name: "My Collections", method: "GET", path: "/saved/collections" },
       { id: "saved-move", name: "Move Save to Collection", method: "PUT", path: "/saved/:saveId/move", bodyTemplate: { collection_name: "Important" } },
