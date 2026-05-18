@@ -38,13 +38,26 @@ export async function runApiOperation({
   }
 
   const normalizedBase = cleanBase;
-  const requestUrl = new URL(`${normalizedBase}${appliedPath}`);
+  const isHttpsOrigin = typeof window !== "undefined" && window.location.protocol === "https:";
+  const isHttpTarget = normalizedBase.startsWith("http://");
 
-  if (queryObj && typeof queryObj === "object") {
-    Object.entries(queryObj).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === "") return;
-      requestUrl.searchParams.set(key, String(value));
-    });
+  let requestUrl;
+  
+  if (isHttpsOrigin && isHttpTarget) {
+    // Proxy the request through our Next.js backend to bypass browser Mixed Content (HTTPS -> HTTP) blocks
+    requestUrl = new URL(window.location.origin + "/api/proxy");
+    requestUrl.searchParams.set("targetUrl", `${normalizedBase}${appliedPath}`);
+    if (queryObj && typeof queryObj === "object") {
+      requestUrl.searchParams.set("queryObj", JSON.stringify(queryObj));
+    }
+  } else {
+    requestUrl = new URL(`${normalizedBase}${appliedPath}`);
+    if (queryObj && typeof queryObj === "object") {
+      Object.entries(queryObj).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === "") return;
+        requestUrl.searchParams.set(key, String(value));
+      });
+    }
   }
 
   const headers = { Accept: "application/json" };
