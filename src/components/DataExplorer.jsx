@@ -201,14 +201,6 @@ export default function DataExplorer({ group, baseUrl, token, onToast }) {
         </div>
       </div>
 
-      {/* Available operations */}
-      <div className="ops-pills-row">
-        {group.operations.map((op) => (
-          <span key={op.id} className={`method-pill ${METHOD_COLORS[op.method]}`} title={op.path}>
-            {op.method} {op.name}
-          </span>
-        ))}
-      </div>
 
       {/* Data table card */}
       <div className="glass-card table-card">
